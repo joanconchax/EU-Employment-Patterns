@@ -15,7 +15,6 @@ if (length(missing)) install.packages(missing)
 # Load all specified packages:
 invisible(lapply(packages, library, character.only = TRUE))
 
-
 # Define the directory that contains the .tsv files:
 directory <- "./tsv_files"
 
@@ -27,8 +26,7 @@ nuts_codes <- read_excel("NUTS2Final.xlsx")
 source("aux_functions.R")
 
 
-##############  CREATION AND CLEANING OF VARIABLES  ##############
-
+#CREATION AND CLEANING OF VARIABLES
 # Extract the 'variable_name' column as the list of dataset names:
 variable_names <- dataset_names$variable_name
 valid_nuts_codes <- nuts_codes$`NUTS Code`
@@ -67,8 +65,7 @@ for (var_name in variable_names) {
 }
 
 
-##############  COUNTING THE % OF MISSING VALUES FOR ALL DATASETS  ##############
-
+# COUNTING THE % OF MISSING VALUES FOR ALL DATASETS 
 # Create list as placeholder for results:
 year_missing_counts <- list()
 
@@ -114,8 +111,7 @@ mean_missing_summary_df <- data.frame(
 View(mean_missing_summary_df)
 
 
-##############  CREATION OF THE FINAL DATASET CONSIDERING ONLY THE YEAR 2019  ##############
-
+# CREATION OF THE FINAL DATASET CONSIDERING ONLY THE YEAR 2019
 # Rename NUTS Code column to NUTS_Code:
 colnames(nuts_codes)[colnames(nuts_codes) == "NUTS Code"] <- "NUTS_Code"
 
@@ -173,8 +169,7 @@ combined_df_cleaned <- combined_df_cleaned %>%
   mutate(across(2:ncol(combined_df_cleaned), ~as.numeric(na_if(., ":"))))
 
 
-##########  EXPLORATORY DATA ANALYSIS  #############
-
+# EXPLORATORY DATA ANALYSIS
 # Assess the normality of variables before imputation:
 normality_results <- sapply(combined_df_cleaned, test_normality)
 
@@ -192,8 +187,7 @@ for (i in seq(1, length(numeric_cols), 4)) {
 }
 
 
-##################  PHASE 1: MISSING VALUE IMPUTATION IN EACH INDIVIDUAL DATASET  ##################
-
+# PHASE 1: MISSING VALUE IMPUTATION IN EACH INDIVIDUAL DATASET  
 # Loop through each column in the cleaned dataset (excluding the first column):
 for (col_name in names(combined_df_cleaned)[-1]) {
   # Retrieve the corresponding dataset:
@@ -286,8 +280,7 @@ for (col_name in names(combined_df_cleaned)[-1]) {
 }
 
 
-##################  PHASE 2: MISSING VALUE IMPUTATION IN THE FINAL TABLE  ##################
-
+# PHASE 2: MISSING VALUE IMPUTATION IN THE FINAL TABLE 
 # Print missing data pattern (pre-imputation):
 print(md.pattern(combined_df_cleaned[, -1], rotate.names = TRUE))
 grid.text(paste("Missing Data Pattern for 2019 (pre-imputation phase 2)"),
@@ -295,7 +288,6 @@ grid.text(paste("Missing Data Pattern for 2019 (pre-imputation phase 2)"),
 
 # Assume the first column is an identifier (e.g., NUTS_Code):
 data_for_imputation <- combined_df_cleaned
-
 
 # Specify the predictor columns (all except the first one):
 predictor_cols <- names(data_for_imputation)[-1]
@@ -334,8 +326,7 @@ for (col_name in column_names) {
 write.table(combined_df_cleaned, file = "cleaned_dataset.tsv", sep = "\t", row.names = FALSE, quote = FALSE)
 
 
-###########  IMPUTATION QUALITY ASSESSMENT  ###########    
-
+# IMPUTATION QUALITY ASSESSMENT
 stripplot(imputed_data, pch = 20, main = "Imputation Quality – Phase 2", 
           col = c("blue", "red"), 
           cex = 1.2, 
@@ -379,8 +370,7 @@ ggplot(var_comparison_sorted, aes(x = reorder(rownames(var_comparison_sorted), d
   scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 
-########## PRINCIPAL COMPONENT ANALYSIS ##########
-
+#PRINCIPAL COMPONENT ANALYSIS
 # dataset <- read_tsv("dataset_final.tsv")
 dataset <- combined_df_cleaned
 
@@ -414,8 +404,7 @@ round(correlation, 3)
 cortest.bartlett(correlation)
 KMO(correlation)
 
-### SELECTING NUMBER OF COMPONENTS ###
-
+# SELECTING NUMBER OF COMPONENTS
 # Normalize the data:
 data_scaled <- scale(dataset[,2:52])
 
@@ -463,14 +452,13 @@ mean(pc5sc$scores[,1])
 # Compute the standard deviation:
 sd(pc5sc$scores[,1])
 
-
 # Normalize the eigenvalues (variance explained by each component) applied to the PCA model with 5 components (example):
 normalized_scores <- normalize_pca_scores(pc5sc)
 
 # View the new normalized scores:
 head(normalized_scores)
 
-### Component Assessment ###
+# Component Assessment
 # Add the normalized scores to the original dataset:
 dataset$Dimensão_Laboral <- normalized_scores[,1]
 dataset$Faces_do_Mercado_de_Trabalho <- normalized_scores[,2]
@@ -491,7 +479,7 @@ plot(dataset$Dimensão_Laboral, dataset$Faces_do_Mercado_de_Trabalho, pch = 19,
 text(dataset$Dimensão_Laboral, dataset$Faces_do_Mercado_de_Trabalho - 0.1, dataset[,2])  # (x, y, labels)
 
 
-################### Clustering #########################
+# Clustering
 
 nutscode <- dataset$NUTS_Code 
 geodata <- get_eurostat_geospatial(nuts_level = 2, year = 2016)
@@ -519,11 +507,11 @@ cluster_profiles <- aggregate(dataset[, c("Dimensão_Laboral", "Faces_do_Mercado
 print(cluster_profiles)
 
 
-### Elbow Method ###
+# Elbow Method 
 wssplot(dataset[, c("Dimensão_Laboral", "Faces_do_Mercado_de_Trabalho", "Emprego_Industrial", "Inovação_vs_Tradição", "Raízes_do_Desemprego")], nc = 15)
 
-### K-Means Clustering ###
 
+#K-Means Clustering
 # 4 Clusters:
 kmeans_result4 <- kmeans(dataset[, c("Dimensão_Laboral", "Faces_do_Mercado_de_Trabalho", "Emprego_Industrial", "Inovação_vs_Tradição", "Raízes_do_Desemprego")], centers = 4, nstart = 25)
 dataset$cluster_kmeans4 <- kmeans_result4$cluster
@@ -567,8 +555,7 @@ mapk4 <- tm_shape(geodata,
 print(mapk4)
 
 
-### PAM Clustering ###
-
+# PAM Clustering
 pam_result <- pam(dataset[, c("Dimensão_Laboral", "Faces_do_Mercado_de_Trabalho", "Emprego_Industrial", "Inovação_vs_Tradição", "Raízes_do_Desemprego")], k = 4, metric = "euclidean")
 dataset$cluster_pam <- pam_result$clustering
 clusplot(pam_result, labels = 4, main = "PAM Clustering of PCA Components")
@@ -599,12 +586,10 @@ mapp4 <- tm_shape(geodata,
               palette = "Set3"  
   ) +
   tm_layout(legend.outside = TRUE)
-
 print(mapp4)
 
 
-### Gaussian Mixture Model (GMM) Clustering ###
-
+# Gaussian Mixture Model (GMM) Clustering
 pca_data <- dataset[, c("Dimensão_Laboral", "Faces_do_Mercado_de_Trabalho", "Emprego_Industrial", "Inovação_vs_Tradição", "Raízes_do_Desemprego")]
 gmm_result <- Mclust(pca_data)
 summary(gmm_result)
@@ -621,8 +606,7 @@ silhouette_scores <- silhouette(dataset$cluster_gmm, dist_matrix)
 plot(silhouette_scores, main = "Silhouette Plot for GMM Clustering")
 
 
-### Profiling ###
-
+# Profiling
 # Extract the country code from NUTS codes:
 dataset$Country <- substr(nutscode, 1, 2)
 head(dataset$Country)
@@ -665,7 +649,6 @@ dataset$Is_Capital <- ifelse(dataset$NUTS_Code %in% capital_regions, 1, 0)
 
 
 # Analysis using profile variables:
-
 # Convert GDP to numeric format:
 dataset$GDP <- as.numeric(gsub(",", ".", gsub("\\.", "", dataset$GDP)))
 
@@ -708,7 +691,6 @@ ggplot(gdp_long, aes(x = cluster_kmeans4, y = Value, fill = Metric)) +
 
 
 # Urbanization data:
-
 # Convert Urbanisation to numeric format:
 dataset$Urbanisation <- as.numeric(gsub(",", ".", gsub("\\.", "", dataset$Urbanisation)))
 
@@ -748,7 +730,6 @@ ggplot(urbanization_long, aes(x = cluster_kmeans4, y = Value, fill = Metric)) +
        fill = "Urbanization Metrics") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
         plot.title = element_text(face = "bold", size = 14))
-
 
 # Prepare cluster labels:
 cluster_names <- c("Hard Work", 
